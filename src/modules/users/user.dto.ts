@@ -3,10 +3,8 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsBoolean,
   IsStrongPassword,
   MinLength,
-  ValidateIf,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { PartialType } from '@nestjs/mapped-types';
@@ -49,15 +47,49 @@ export class CreateUserDto {
   passwordConfirm: string;
 }
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
-  @IsOptional()
-  @IsBoolean()
-  active?: boolean;
-
-  @ValidateIf(
-    (o: UpdateUserDto) =>
-      typeof o.password === 'string' && o.password.length > 0,
-  )
+export class UpdateUserPasswordDto extends PartialType(CreateUserDto) {
   @IsString()
-  passwordConfirm?: string;
+  currentPassword: string;
+
+  @MinLength(8)
+  @IsStrongPassword({
+    minLength: 8,
+    minLowercase: 1,
+    minUppercase: 1,
+    minNumbers: 1,
+    minSymbols: 1,
+  })
+  password: string;
+
+  @IsString()
+  passwordConfirm: string;
+}
+
+export class ResetPasswordDto {
+  @MinLength(8)
+  @IsStrongPassword({
+    minLength: 8,
+    minLowercase: 1,
+    minUppercase: 1,
+    minNumbers: 1,
+    minSymbols: 1,
+  })
+  password: string;
+
+  @IsString()
+  passwordConfirm: string;
+}
+
+export class UpdateUserDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString()
+  photo?: string;
 }

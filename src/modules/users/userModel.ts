@@ -1,9 +1,9 @@
 // src/modules/users/userModel.ts
-
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 import validator from 'validator';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 export type UserDocument = HydratedDocument<User>;
 
@@ -57,13 +57,26 @@ export class User {
   passwordChangedAt: Date;
 
   @Prop()
-  passwordResetToken: string;
+  passwordResetToken?: string;
 
   @Prop()
-  passwordResetExpires: Date;
+  passwordResetExpires?: Date;
 
   correctPassword(password: string, userPassword: string): Promise<boolean> {
     return bcrypt.compare(password, userPassword);
+  }
+
+  createPasswordResetToken(this: UserDocument) {
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    this.passwordResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    return resetToken;
   }
 }
 
@@ -93,9 +106,22 @@ UserSchema.pre(/^find/, function (this: mongoose.Query<any, User>) {
   this.find({ active: { $ne: false } });
 });
 
+UserSchema.methods.createPasswordResetToken = function (this: UserDocument) {
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+  return resetToken;
+};
+
 UserSchema.methods.correctPassword = async function (
   password: string,
   userPassword: string,
-) {
+): Promise<boolean> {
   return await bcrypt.compare(password, userPassword);
 };
